@@ -1,0 +1,266 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  BUYER
+  ORGANIZER
+  AGENCY
+  ADMIN
+  SUPPORT
+}
+
+enum EventStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  CANCELLED
+  HIDDEN
+}
+
+enum EventGenre {
+  CONCERT
+  THEATER
+  SPORT
+  CONFERENCE
+  FESTIVAL
+  OTHER
+}
+
+enum SeatStatus {
+  AVAILABLE
+  RESERVED
+  SOLD
+  BLOCKED
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  PAID
+  PAYMENT_FAILED
+  CANCELLED
+  COMPLETED
+}
+
+enum ReservationStatus {
+  ACTIVE
+  EXPIRED
+  CONVERTED
+}
+
+enum ReturnStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum OutboxStatus {
+  PENDING
+  PUBLISHED
+  FAILED
+}
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  passwordHash String        @map("password_hash")
+  role         UserRole      @default(BUYER)
+  fullName     String?       @map("full_name")
+  phone        String?
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  events       Event[]       @relation("EventOrganizer")
+  buyerOrders  Order[]       @relation("OrderBuyer")
+  agencyOrders Order[]       @relation("OrderAgency")
+  reservations Reservation[]
+  returns      Return[]      @relation("ReturnBuyer")
+  requestedReturns Return[] @relation("ReturnRequestedBy")
+  approvedReturns  Return[] @relation("ReturnApprovedBy")
+  auditLogs    AuditLog[]
+
+  @@map("users")
+}
+
+model Event {
+  id              String         @id @default(uuid())
+  organizerId     String         @map("organizer_id")
+  organizer       User           @relation("EventOrganizer", fields: [organizerId], references: [id])
+  title           String
+  description     String?
+  eventDate       DateTime       @map("event_date")
+  venueName       String?        @map("venue_name")
+  venueAddress    String?        @map("venue_address")
+  genre           EventGenre
+  status          EventStatus    @default(DRAFT)
+  saleStartTime   DateTime?      @map("sale_start_time")
+  templateId      String?        @map("template_id")
+  template        VenueTemplate? @relation(fields: [templateId], references: [id])
+  venueLayout     Json?          @map("venue_layout")
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+
+  seats           Seat[]
+  categories      SeatCategory[]
+  orders          Order[]
+  reservations    Reservation[]
+  returns         Return[]       @relation("ReturnEvent")
+
+  @@map("events")
+}
+
+model VenueTemplate {
+  id         String   @id @default(uuid())
+  name       String
+  layoutSchema Json    @map("layout_schema")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  events     Event[]
+
+  @@map("venue_templates")
+}
+
+model SeatCategory {
+  id        String    @id @default(uuid())
+  eventId   String    @map("event_id")
+  event     Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  name      String
+  zoneName  String?   @map("zone_name")
+  price     Decimal   @db.Decimal(10, 2)
+  capacity  Int
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  seats     Seat[]
+  orderItems OrderItem[]
+
+  @@map("seat_categories")
+}
+
+model Seat {
+  id                String      @id @default(uuid())
+  eventId           String      @map("event_id")
+  event             Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  rowNumber         Int         @map("row_number")
+  seatNumber        Int         @map("seat_number")
+  categoryId        String      @map("category_id")
+  category          SeatCategory @relation(fields: [categoryId], references: [id])
+  status            SeatStatus  @default(AVAILABLE)
+  reservationExpiresAt DateTime? @map("reservation_expires_at")
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
+
+  orderItems        OrderItem[]
+
+  @@unique([eventId, rowNumber, seatNumber])
+  @@map("seats")
+}
+
+model Order {
+  id                String        @id @default(uuid())
+  buyerId           String        @map("buyer_id")
+  buyer             User          @relation("OrderBuyer", fields: [buyerId], references: [id])
+  eventId           String        @map("event_id")
+  event             Event         @relation(fields: [eventId], references: [id])
+  agencyId          String?       @map("agency_id")
+  agency            User?         @relation("OrderAgency", fields: [agencyId], references: [id])
+  status            OrderStatus   @default(PENDING_PAYMENT)
+  totalAmount       Decimal       @map("total_amount") @db.Decimal(10, 2)
+  platformCommission Decimal      @map("platform_commission") @default(0) @db.Decimal(10, 2)
+  agencyCommission  Decimal       @map("agency_commission") @default(0) @db.Decimal(10, 2)
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  items             OrderItem[]
+  returns           Return[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String   @id @default(uuid())
+  orderId   String   @map("order_id")
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  seatId    String   @map("seat_id")
+  seat      Seat     @relation(fields: [seatId], references: [id])
+  categoryId String  @map("category_id")
+  category  SeatCategory @relation(fields: [categoryId], references: [id])
+  price     Decimal  @db.Decimal(10, 2)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("order_items")
+}
+
+model Reservation {
+  id         String      @id @default(uuid())
+  buyerId    String      @map("buyer_id")
+  buyer      User        @relation(fields: [buyerId], references: [id])
+  eventId    String      @map("event_id")
+  event      Event       @relation(fields: [eventId], references: [id])
+  seatIds    String[]    @map("seat_ids")
+  expiresAt  DateTime    @map("expires_at")
+  status     ReservationStatus @default(ACTIVE)
+  createdAt  DateTime    @default(now()) @map("created_at")
+
+  @@map("reservations")
+}
+
+model Return {
+  id           String      @id @default(uuid())
+  orderId      String      @map("order_id")
+  order        Order       @relation(fields: [orderId], references: [id])
+  buyerId      String      @map("buyer_id")
+  buyer        User        @relation("ReturnBuyer", fields: [buyerId], references: [id])
+  eventId      String      @map("event_id")
+  event        Event       @relation("ReturnEvent", fields: [eventId], references: [id])
+  status       ReturnStatus @default(PENDING)
+  reason       String?
+  requestedBy  String?     @map("requested_by")
+  requestedByUser User?    @relation("ReturnRequestedBy", fields: [requestedBy], references: [id])
+  approvedBy   String?     @map("approved_by")
+  approvedByUser User?     @relation("ReturnApprovedBy", fields: [approvedBy], references: [id])
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  @@map("returns")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?  @map("user_id")
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String
+  targetType String? @map("target_type")
+  targetId  String?  @map("target_id")
+  details   Json?
+  ipAddress String?  @map("ip_address")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("audit_log")
+}
+
+model Outbox {
+  id         String        @id @default(uuid())
+  eventType  String        @map("event_type")
+  payload    Json
+  status     OutboxStatus  @default(PENDING)
+  createdAt  DateTime      @default(now()) @map("created_at")
+  publishedAt DateTime?    @map("published_at")
+
+  @@map("outbox")
+}
+
+model PlatformSetting {
+  id      String   @id @default(uuid())
+  key     String   @unique
+  value   Json
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("platform_settings")
+}
