@@ -29,8 +29,10 @@ async function bootstrap() {
   // Logging
   app.use(morgan('combined'));
 
-  // Metrics endpoint
-  app.getHttpServer().listen(process.env.PORT ?? 3000);
+  // Initialize and listen
+  await app.init();
+  await app.listen(process.env.PORT ?? 3000);
+  console.log(`Application is running on: ${await app.getUrl()}`);
 }
 
 bootstrap();

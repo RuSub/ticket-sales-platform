@@ -30,23 +30,23 @@ export class KafkaService implements OnModuleDestroy {
     });
   }
 
-  getProducer(): Producer {
+  async getProducer(): Promise<Producer> {
     if (!this.producer) {
       this.producer = this.kafka.producer();
-      this.producer.connect();
+      await this.producer.connect();
       this.logger.log('Kafka producer connected');
     }
     return this.producer;
   }
 
   async publish(topic: string, messages: { value: string }[]) {
-    const producer = this.getProducer();
+    const producer = await this.getProducer();
     await producer.send({ topic, messages });
   }
 
   async subscribe(topic: string, handler: (messages: any[]) => Promise<void>) {
-    const consumer = this.kafka.consumer({ groupId: 'ticket-platform' });
-    consumer.connect();
+    const consumer = this.kafka.consumer({ groupId: `ticket-platform-${topic}` });
+    await consumer.connect();
     consumer.subscribe({ topic });
     consumer.run({
       eachMessage: async ({ message }) => {
