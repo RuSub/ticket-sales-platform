@@ -1,64 +1,85 @@
-import { Body, Controller, Post, UseGuards, Req, Get, Patch, Redirect, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Patch,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+  UnauthorizedException,
+} from '@nestjs/common';
+import type { Response } from 'express';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
-import { LocalAuthGuard } from './local-auth.guard';
+import { RolesGuard } from '../../guards/roles.guard';
 import { GoogleAuthGuard } from './google-auth.guard';
 import { Roles } from '../../decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
+import { LoginDto, RefreshTokenDto, RegisterDto, UpdateProfileDto } from './dto/auth.dto';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(private readonly authService: AuthService) {}
 
   @Post('register')
-  async register(@Body() body: { email: string; password: string; fullName?: string }) {
-    return this.authService.register(body.email, body.password, body.fullName);
+  register(@Body() dto: RegisterDto) {
+    return this.authService.register(dto.email, dto.password, dto.fullName ?? dto.name);
   }
 
   @Post('login')
-  @UseGuards(LocalAuthGuard)
-  async login(@Req() req: any) {
-    return this.authService.login(req.user.email, req.body.password);
+  login(@Body() dto: LoginDto) {
+    return this.authService.login(dto.email, dto.password);
   }
 
   @Post('refresh')
-  async refresh(@Body('refreshToken') refreshToken: string) {
-    return this.authService.refreshToken(refreshToken);
+  refresh(@Body() dto: RefreshTokenDto) {
+    return this.authService.refreshToken(dto.refreshToken);
   }
 
   @Post('logout')
   @UseGuards(JwtAuthGuard)
-  async logout(@Req() req: any) {
+  logout() {
     return { message: 'Logged out successfully' };
   }
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
   getMe(@Req() req: any) {
-    return req.user;
+    return this.authService.getProfile(req.user.userId);
   }
 
   @Patch('me')
   @UseGuards(JwtAuthGuard)
-  updateMe(@Req() req: any, @Body() body: { fullName?: string; phone?: string }) {
-    return { ...req.user, ...body };
+  updateMe(@Req() req: any, @Body() dto: UpdateProfileDto) {
+    return this.authService.updateProfile(req.user.userId, dto);
   }
 
   @Roles(UserRole.ADMIN)
   @Get('admin/users')
-  @UseGuards(JwtAuthGuard)
-  getUsers(@Req() req: any) {
-    return { message: 'Admin users endpoint', users: [] };
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  getUsers() {
+    return this.authService.listUsers();
   }
 
   @Get('oauth2/google')
   @UseGuards(GoogleAuthGuard)
-  async googleAuth(@Req() req: any) {}
+  googleAuth() {
+    // Passport redirects to Google before this handler runs.
+  }
 
   @Get('oauth2/google/callback')
   @UseGuards(GoogleAuthGuard)
-  @Redirect()
-  async googleAuthRedirect(@Req() req: any) {
-    return { url: `/?accessToken=${req.user.accessToken}` };
+  async googleAuthRedirect(@Req() req: any, @Res() res: Response) {
+    const result = req.user;
+    if (!result?.accessToken) {
+      throw new UnauthorizedException('OAuth authentication failed');
+    }
+
+    const target = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/oauth/callback?accessToken=${encodeURIComponent(
+      result.accessToken,
+    )}&refreshToken=${encodeURIComponent(result.refreshToken)}`;
+
+    return res.redirect(target);
   }
 }

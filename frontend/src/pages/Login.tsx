@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/auth';
 import '../styles/auth.css';
 
@@ -12,13 +12,13 @@ export function Login() {
   const isLoading = useAuthStore((state) => state.isLoading);
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
     try {
       await login(email, password);
-      navigate('/');
+      navigate('/', { replace: true });
     } catch {
-      // Error is handled by the store
+      // Error is rendered from the store.
     }
   };
 
@@ -37,8 +37,9 @@ export function Login() {
               id="email"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(event) => setEmail(event.target.value)}
               required
+              autoComplete="email"
               placeholder="your@email.com"
             />
           </div>
@@ -50,14 +51,16 @@ export function Login() {
                 id="password"
                 type={showPassword ? 'text' : 'password'}
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(event) => setPassword(event.target.value)}
                 required
+                autoComplete="current-password"
                 placeholder="••••••••"
               />
               <button
                 type="button"
                 className="toggle-password"
-                onClick={() => setShowPassword(!showPassword)}
+                onClick={() => setShowPassword((value) => !value)}
+                aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
               >
                 {showPassword ? '🙈' : '👁️'}
               </button>

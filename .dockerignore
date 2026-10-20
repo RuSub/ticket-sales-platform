@@ -1,0 +1,11 @@
+node_modules
+dist
+logs
+coverage
+.git
+.gitignore
+.env
+.env.*
+*.log
+*.tsbuildinfo
+openspec

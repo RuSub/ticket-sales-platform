@@ -47,8 +47,16 @@ export class KafkaService implements OnModuleDestroy {
   async subscribe(topic: string, handler: (messages: any[]) => Promise<void>) {
     const consumer = this.kafka.consumer({ groupId: `ticket-platform-${topic}` });
     await consumer.connect();
-    consumer.subscribe({ topic });
-    consumer.run({
+
+    // Wait for the group join so messages published right after subscribe()
+    // resolves are not skipped (a fresh consumer starts at the latest offset).
+    const joined = new Promise<void>((resolve) => {
+      consumer.on(consumer.events.GROUP_JOIN, () => resolve());
+      setTimeout(resolve, 15_000);
+    });
+
+    await consumer.subscribe({ topic });
+    await consumer.run({
       eachMessage: async ({ message }) => {
         try {
           await handler([message]);
@@ -57,6 +65,8 @@ export class KafkaService implements OnModuleDestroy {
         }
       },
     });
+
+    await joined;
     this.consumers.push(consumer);
     this.logger.log(`Kafka consumer subscribed to ${topic}`);
   }

@@ -1,8 +1,19 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/client';
-import type { Event } from '../types';
+import { getErrorMessage } from '../utils/errors';
+import { formatDateTime } from '../utils/format';
+import type { Event, EventGenre, EventListResponse } from '../types';
 import '../styles/events.css';
+
+const GENRE_LABELS: Record<EventGenre, string> = {
+  CONCERT: 'Концерт',
+  THEATER: 'Театр',
+  SPORT: 'Спорт',
+  CONFERENCE: 'Конференция',
+  FESTIVAL: 'Фестиваль',
+  OTHER: 'Другое',
+};
 
 export function Events() {
   const [events, setEvents] = useState<Event[]>([]);
@@ -11,48 +22,28 @@ export function Events() {
   const [search, setSearch] = useState('');
   const navigate = useNavigate();
 
-  const fetchEvents = async (query?: string) => {
+  const load = useCallback(async (term: string) => {
     setLoading(true);
+    setError(null);
     try {
-      const params = query ? { query } : {};
-      const { data } = await api.get<Event[]>('/events', { params });
-      setEvents(data);
-    } catch {
-      setError('Не удалось загрузить события');
+      const { data } = term.trim()
+        ? await api.get<EventListResponse>('/events/search', { params: { q: term.trim() } })
+        : await api.get<EventListResponse>('/events');
+      setEvents(data.events);
+    } catch (err) {
+      setError(getErrorMessage(err, 'Не удалось загрузить события'));
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    fetchEvents();
   }, []);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    fetchEvents(search);
-  };
+  useEffect(() => {
+    void load('');
+  }, [load]);
 
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('ru-RU', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-      hour: '24',
-      minute: '24',
-    });
-  };
-
-  const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      APPROVED: '#22c55e',
-      DRAFT: '#f59e0b',
-      PENDING: '#3b82f6',
-      COMPLETED: '#6b7280',
-      CANCELLED: '#ef4444',
-    };
-    return colors[status] || '#6b7280';
+  const handleSearch = (event: React.FormEvent) => {
+    event.preventDefault();
+    void load(search);
   };
 
   return (
@@ -61,10 +52,11 @@ export function Events() {
         <h1>🎫 События</h1>
         <form className="search-form" onSubmit={handleSearch}>
           <input
-            type="text"
+            type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Поиск событий..."
+            placeholder="Название, площадка или описание..."
+            aria-label="Поиск событий"
           />
           <button type="submit" className="btn-secondary">
             🔍
@@ -76,31 +68,30 @@ export function Events() {
 
       {loading ? (
         <div className="loading">Загрузка...</div>
+      ) : events.length === 0 ? (
+        <div className="empty-state">
+          <p>{search ? 'По вашему запросу ничего не найдено' : 'Пока нет доступных событий'}</p>
+        </div>
       ) : (
         <div className="events-grid">
-          {events.length === 0 ? (
-            <div className="empty-state">
-              <p>События не найдены</p>
-            </div>
-          ) : (
-            events.map((event) => (
-              <div
-                key={event.id}
-                className="event-card"
-                onClick={() => navigate(`/events/${event.id}`)}
-              >
-                <div className="event-status" style={{ backgroundColor: getStatusColor(event.status) }}>
-                  {event.status}
-                </div>
-                <h3>{event.title}</h3>
-                <p className="event-description">{event.description}</p>
-                <div className="event-meta">
-                  <span className="event-date">📅 {formatDate(event.date)}</span>
-                  <span className="event-location">📍 {event.location}</span>
-                </div>
+          {events.map((event) => (
+            <article
+              key={event.id}
+              className="event-card"
+              onClick={() => navigate(`/events/${event.id}`)}
+            >
+              <span className="event-genre">{GENRE_LABELS[event.genre] ?? event.genre}</span>
+              <h3>{event.title}</h3>
+              {event.description && <p className="event-description">{event.description}</p>}
+              <div className="event-meta">
+                <span>📅 {formatDateTime(event.eventDate)}</span>
+                <span>📍 {event.venueName ?? 'Площадка уточняется'}</span>
+                {typeof event._count?.seats === 'number' && (
+                  <span>🎟️ {event._count.seats} мест</span>
+                )}
               </div>
-            ))
-          )}
+            </article>
+          ))}
         </div>
       )}
     </div>

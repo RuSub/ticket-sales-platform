@@ -19,6 +19,7 @@
   font-weight: bold;
   color: var(--primary);
   text-decoration: none;
+  white-space: nowrap;
 }
 
 .nav-links {
@@ -36,6 +37,38 @@
 
 .nav-links a:hover {
   color: var(--primary);
+}
+
+.header-user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.nav-link-button {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.nav-link-button:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.nav-link-button.primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+}
+
+.nav-link-button.primary:hover {
+  background: var(--primary-hover);
+  color: white;
 }
 
 .btn-logout {
@@ -59,6 +92,10 @@
   border-radius: var(--radius);
   font-size: 0.9rem;
   color: var(--text-secondary);
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .app-footer {
@@ -68,4 +105,20 @@
   text-align: center;
   color: var(--text-secondary);
   font-size: 0.9rem;
+}
+
+@media (max-width: 720px) {
+  .header-content {
+    flex-wrap: wrap;
+    gap: 2rem 1rem;
+  }
+
+  .nav-links {
+    order: 3;
+    flex-basis: 100%;
+  }
+
+  .user-badge {
+    display: none;
+  }
 }

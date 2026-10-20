@@ -26,7 +26,14 @@ export class QRCodeService {
   }
 
   async generateTicketPDF(ticketId: string, eventData: any, seats: any[], user: any): Promise<Buffer> {
-    const doc = new PDFDocument({ margin: 50 });
+    const doc = new PDFDocument({
+      margin: 50,
+      info: {
+        Title: `Билет: ${eventData.title}`,
+        Subject: `ticket:${ticketId}`,
+        Keywords: ticketId,
+      },
+    });
     const chunks: Buffer[] = [];
 
     doc.on('data', chunk => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));

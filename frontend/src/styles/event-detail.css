@@ -10,11 +10,11 @@
   margin-bottom: 2rem;
 }
 
-.event-meta {
-  display: flex;
-  gap: 2rem;
+.event-info .event-meta {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 1.5rem;
   margin-top: 1rem;
-  color: var(--text-secondary);
 }
 
 .venue-layout {
@@ -24,8 +24,20 @@
   box-shadow: var(--shadow);
 }
 
-.venue-layout h2 {
+.venue-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
   margin-bottom: 1rem;
+}
+
+.live-badge {
+  color: var(--success);
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .seat-legend {
@@ -40,6 +52,13 @@
   align-items: center;
   gap: 0.5rem;
   font-size: 0.9rem;
+}
+
+.legend-item .seat {
+  cursor: default;
+  pointer-events: none;
+  width: 26px;
+  height: 26px;
 }
 
 .seats-grid {
@@ -72,11 +91,19 @@
   color: white;
 }
 
-.seat.booked {
+.seat.sold {
   background: var(--border);
   border-color: var(--border);
   cursor: not-allowed;
   opacity: 0.5;
+}
+
+.seat.blocked {
+  background: #fee2e2;
+  border-color: #fecaca;
+  color: #b91c1c;
+  cursor: not-allowed;
+  opacity: 0.7;
 }
 
 .category-section {
@@ -97,9 +124,15 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .cart-summary p {
   font-size: 1.1rem;
   font-weight: 500;
+}
+
+.cart-summary small {
+  display: block;
 }

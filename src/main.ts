@@ -1,11 +1,14 @@
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import { AppModule } from './app.module';
+import { WinstonLoggerService } from './common/logger/winston.logger';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+
+  app.useLogger(app.get(WinstonLoggerService));
 
   // Security
   app.use(helmet());
@@ -28,6 +31,8 @@ async function bootstrap() {
 
   // Logging
   app.use(morgan('combined'));
+
+  app.enableShutdownHooks();
 
   // Initialize and listen
   await app.init();

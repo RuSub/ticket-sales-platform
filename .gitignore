@@ -1,6 +1,5 @@
 # Dependencies
 node_modules/
-package-lock.json
 
 # Build outputs
 dist/
@@ -29,9 +28,6 @@ logs/
 # Testing
 coverage/
 .nyc_output/
-
-# Prisma
-prisma/migrations/
 
 # Docker
 postgres_data/

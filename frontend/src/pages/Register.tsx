@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/auth';
 import '../styles/auth.css';
 
@@ -8,24 +8,30 @@ export function Register() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
+  const [formError, setFormError] = useState<string | null>(null);
   const register = useAuthStore((state) => state.register);
   const error = useAuthStore((state) => state.error);
   const isLoading = useAuthStore((state) => state.isLoading);
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    setFormError(null);
 
     if (password !== confirmPassword) {
-      register('passwords-mismatch', '', '');
+      setFormError('Пароли не совпадают');
+      return;
+    }
+    if (password.length < 8) {
+      setFormError('Пароль должен содержать минимум 8 символов');
       return;
     }
 
     try {
       await register(email, password, name);
-      navigate('/');
+      navigate('/', { replace: true });
     } catch {
-      // Error is handled by the store
+      // Error is rendered from the store.
     }
   };
 
@@ -35,7 +41,7 @@ export function Register() {
         <h1>🎫 Ticket Platform</h1>
         <h2>Регистрация</h2>
 
-        {error && <div className="auth-error">{error}</div>}
+        {(formError || error) && <div className="auth-error">{formError ?? error}</div>}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
@@ -44,8 +50,9 @@ export function Register() {
               id="name"
               type="text"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(event) => setName(event.target.value)}
               required
+              autoComplete="name"
               placeholder="Иван Иванов"
             />
           </div>
@@ -56,8 +63,9 @@ export function Register() {
               id="email"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(event) => setEmail(event.target.value)}
               required
+              autoComplete="email"
               placeholder="your@email.com"
             />
           </div>
@@ -68,9 +76,10 @@ export function Register() {
               id="password"
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(event) => setPassword(event.target.value)}
               required
               minLength={8}
+              autoComplete="new-password"
               placeholder="Минимум 8 символов"
             />
           </div>
@@ -81,9 +90,10 @@ export function Register() {
               id="confirmPassword"
               type="password"
               value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              onChange={(event) => setConfirmPassword(event.target.value)}
               required
               minLength={8}
+              autoComplete="new-password"
               placeholder="Повторите пароль"
             />
           </div>

@@ -1,124 +1,181 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Ticket Platform
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Платформа продажи билетов на мероприятия: каталог и поиск событий, выбор мест на схеме зала,
+резервирование с таймаутом, оплата, возвраты и панели для организатора, агентства, поддержки и
+администратора.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Стек
 
-## Description
+| Слой | Технологии |
+|------|------------|
+| Backend | NestJS 12, TypeScript, Prisma 6 |
+| БД | PostgreSQL 15 (+ JSONB для схем залов) |
+| Кэш и блокировки | Redis 7 (distributed locks, TTL резервов) |
+| События | Kafka (outbox-паттерн) |
+| Real-time | Socket.IO (namespace `/events`) |
+| Auth | Passport.js: JWT (access/refresh), Google OAuth2 |
+| Frontend | React 19, Vite 8, React Router 7, Zustand, Axios |
+| Инфраструктура | Docker Compose, Prometheus + Grafana, Mailhog |
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
-## Project setup
+## Быстрый старт (Docker)
 
 ```bash
-$ npm install
+cp .env.example .env          # заполните секреты и OAuth-ключи
+docker compose up --build
 ```
 
-## Compile and run the project
+- приложение: http://localhost:3000/api (Swagger не подключён)
+- фронтенд: http://localhost
+- Mailhog: http://localhost:8025
+- Prometheus: http://localhost:9090, Grafana: http://localhost:3001 (admin/admin)
+
+Контейнер `app` при старте сам применяет миграции (`prisma migrate deploy`). Наполнение демо-данными:
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+docker compose exec app npx ts-node prisma/seed.ts
 ```
 
-## Run tests
+## Локальная разработка
 
 ```bash
-# unit tests
-$ npm run test
+# инфраструктура (можно поднять только нужные сервисы)
+docker compose up -d postgres redis kafka
 
-# e2e tests
-$ npm run test:e2e
+# backend
+npm install
+npx prisma migrate dev
+npm run prisma:seed
+npm run start:dev            # http://localhost:3000/api
 
-# test coverage
-$ npm run test:cov
+# frontend
+cd frontend
+npm install
+npm run dev                  # http://localhost:5173, /api и /socket.io проксируются на :3000
 ```
 
-## Deployment
+## Демо-аккаунты
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+После `prisma:seed` создаются пользователи с паролем `ChangeMe123!` (переопределяется `SEED_PASSWORD`):
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+| Email | Роль |
+|-------|------|
+| admin@ticketplatform.com | ADMIN |
+| organizer@ticketplatform.com | ORGANIZER |
+| agency@ticketplatform.com | AGENCY |
+| support@ticketplatform.com | SUPPORT |
+| buyer@ticketplatform.com | BUYER |
+
+Seed также создаёт одобренное событие **Demo Concert** с 450 местами и категориями.
+
+## Роли и доступ
+
+| Роль | Возможности |
+|------|-------------|
+| BUYER | каталог, бронирование, оплата, возвраты, история заказов |
+| ORGANIZER | CRUD своих мероприятий, схемы залов и категории, модерация возвратов, статистика |
+| AGENCY | статистика продаж и комиссий по своим заказам |
+| SUPPORT | поиск заказов, ручная отмена/подтверждение, возвраты, история действий |
+| ADMIN | модерация мероприятий, пользователи и роли, комиссия платформы, аналитика |
+
+RBAC реализован через `@Roles()` + `RolesGuard`; проверка владельца ресурса — в сервисах.
+
+## Агентские продажи
+
+Организатор назначает агентство на своё мероприятие:
+
+```http
+POST /api/organizer/events/:eventId/agencies
+Authorization: Bearer <organizer token>
+{ "agencyId": "<uuid>" }
+→ 201 { "eventId": "...", "agencyId": "...", "assignedBy": "..." }
+```
+
+Агентство видит только назначенные события (`GET /api/agency/events`) и продаёт места:
+
+```http
+POST /api/agency/orders
+Authorization: Bearer <agency token>
+{ "eventId": "<uuid>", "seatIds": ["<uuid>"] }
+→ 201 {
+  "buyerId": "<agencyId>", "agencyId": "<agencyId>",
+  "status": "PENDING_PAYMENT", "totalAmount": "1000.00",
+  "agencyCommission": "50.00", "items": [ ... ]
+}
+```
+
+Агентство выступает покупателем (`buyerId = agencyId`), комиссия — 5 % от суммы. Места
+резервируются на 10 минут; если создание заказа не удалось, резервация освобождается. Оплата —
+обычным `POST /api/payments/:orderId/charge` от токена агентства. Статистика:
+`GET /api/agency/stats` (`assignedEvents`, `totalOrders`, `totalTicketsSold`, `totalRevenue`,
+`totalCommission`, `salesByEvent`, `salesByDate`).
+
+## Основные эндпоинты
+
+```
+POST   /api/auth/register|login|refresh|logout
+GET    /api/auth/me
+GET    /api/events                     # только APPROVED, пагинация
+GET    /api/events/search              # q, date, city, genre
+GET    /api/events/:id
+GET    /api/events/templates
+POST   /api/events                     # ORGANIZER, авто-генерация мест из шаблона
+POST   /api/events/:id/generate-seats
+GET    /api/events/:id/available-seats
+GET    /api/events/:id/available-seats/layout
+GET    /api/cart | POST /api/cart | DELETE /api/cart/:id
+POST   /api/orders                     # { cartId }
+GET    /api/orders | GET /api/orders/:id
+POST   /api/orders/:id/cancel
+POST   /api/payments/:orderId/charge   # { paymentMethod }, идемпотентно
+GET    /api/returns | POST /api/returns | DELETE /api/returns/:id
+POST   /api/returns/:id/approve|reject
+GET    /api/organizer/... | /api/agency/... | /api/admin/... | /api/support/...
+GET    /api/health | /api/metrics
+```
+
+## WebSocket
+
+Подключение: `io('/events')`.
+
+```js
+socket.emit('subscribe:seats', { eventId });
+socket.on('seat_status_initial', ({ seats }) => {});
+socket.on('seat_status_updated', ({ seatId, oldStatus, newStatus }) => {});
+```
+
+## Тесты
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+npm run test:e2e           # smoke без БД: bootstrap, health, metrics, RBAC, валидация
+npm run test:integration   # на живой БД: бронь, оплата, возврат, гонка, TTL, отмена
+npm run test:all           # оба набора подряд
+COMPOSE_SMOKE=1 npm run smoke:compose  # проверка compose-стека и одной брони
+npm test                   # unit-тесты (пока отсутствуют)
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+Smoke-тесты не требуют инфраструктуры. Интеграционные тесты используют
+`DATABASE_URL` (по умолчанию `postgresql://postgres:postgres@localhost:5432/ticket_platform`)
+и Redis, создают собственные фикстуры и удаляют их после прогона; лимиты троттлинга
+для них поднимаются через `THROTTLER_*_LIMIT` в `vitest.config.integration.ts`.
 
-## Observability
+## Структура
 
-In production applications, observability is essential for understanding how your system behaves, detecting issues early, and maintaining reliable performance.
-
-[NestJS Observe](https://observe.nestjs.com) automatically instruments your NestJS application, giving you deep visibility into your system with minimal setup:
-
-- **Distributed tracing:** Follow requests across services and understand how they flow through your system.
-- **Waterfall analysis:** Visualize request execution and identify slow operations, bottlenecks, and unexpected delays.
-- **Performance analysis:** Analyze application performance in real time and quickly pinpoint areas that need optimization.
-- **Metrics:** Track key application and infrastructure metrics to understand system health and performance trends.
-- **Logging:** Centralize and correlate logs with traces and other telemetry to make debugging easier.
-- **Error tracking:** Detect errors quickly and investigate their root causes with the surrounding context.
-- **SLA monitoring:** Track service-level objectives and identify when your application is approaching or exceeding defined thresholds.
-- **Alarms and alerts:** Set up alerts for critical errors, performance degradation, SLA violations, and other anomalies so your team can react quickly.
-
-To add it to this project:
-
-```bash
-$ npm install @nestjs/observe
+```
+src/
+  common/          # redis, kafka, outbox, metrics, health, audit, qr
+  guards/          # RolesGuard
+  modules/         # auth, user, event, search, booking, order, payment, return,
+                   # notification, dashboard
+prisma/            # schema.prisma, migrations, seed.ts
+frontend/src/      # React SPA: pages, api, store, components, styles
+openspec/          # спецификации и change-артефакты (spec-driven workflow)
 ```
 
-Then follow the [setup guide](https://docs.nestjs.com/observability/overview) - it takes a single import and an app key.
+## Ограничения текущего MVP
 
-The free plan needs no payment details and covers 300,000 events a month. You can also browse the [live demo](https://www.observe-demo.nestjs.com/dashboard) first - the whole dashboard over a busy service's data, with nothing to install.
+- Метрики хранятся в памяти процесса (без `prom-client`), при перезапуске сбрасываются.
+- Outbox-паблишер запускается только при заданном `KAFKA_BROKERS`; ретраи без backoff.
+- Поиск использует PostgreSQL FTS (`russian`, веса title/description); для запросов короче 3 символов — `ILIKE`.
+- Письма уходят через SMTP (Mailhog в dev); без настроенного SMTP доставки помечаются `FAILED` после 3 попыток.
+- Real-time дашборды требуют подключения к namespace `/dashboards` с JWT в `handshake.auth.token`.
 
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Auto-instrument your application with [NestJS Observe](https://observe.nestjs.com). Distributed tracing, metrics, and logging made easy. Error tracking and performance monitoring for your NestJS applications.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).

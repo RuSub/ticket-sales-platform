@@ -1,33 +1,41 @@
 import { Injectable, LoggerService } from '@nestjs/common';
 import winston from 'winston';
+import { getLogContext } from './log-context';
+
+const contextFormat = winston.format((info) => {
+  const context = getLogContext();
+  if (context?.traceId) {
+    info.traceId = context.traceId;
+  }
+  if (context?.userId) {
+    info.userId = context.userId;
+  }
+  return info;
+});
 
 @Injectable()
 export class WinstonLoggerService implements LoggerService {
   private readonly logger: winston.Logger;
 
   constructor() {
+    const transports: winston.transport[] = [new winston.transports.Console()];
+
+    // File logs are opt-in: the container image does not create logs/ by default.
+    if (process.env.LOG_TO_FILE === 'true') {
+      transports.push(new winston.transports.File({ filename: 'logs/combined.log' }));
+      transports.push(
+        new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
+      );
+    }
+
     this.logger = winston.createLogger({
       level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
       format: winston.format.combine(
+        contextFormat(),
         winston.format.timestamp(),
         winston.format.json(),
       ),
-      transports: [
-        new winston.transports.Console({
-          format: winston.format.combine(
-            winston.format.colorize(),
-            winston.format.printf(({ timestamp, level, message, context, userId, traceId }) => {
-              let line = `[${timestamp}] ${level}: ${message}`;
-              if (context) line += ` [${context}]`;
-              if (userId) line += ` [user:${userId}]`;
-              if (traceId) line += ` [trace:${traceId}]`;
-              return line;
-            }),
-          ),
-        }),
-        new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
-        new winston.transports.File({ filename: 'logs/combined.log' }),
-      ],
+      transports,
     });
   }
 

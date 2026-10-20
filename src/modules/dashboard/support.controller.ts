@@ -1,41 +1,57 @@
-import { Controller, Get, Post, Param, Body, Query, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Param, ParseUUIDPipe, Post, Query, Req, UseGuards } from '@nestjs/common';import { Prisma, UserRole } from '@prisma/client';
+import { prisma } from '../../prisma/prisma.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../../guards/roles.guard';
 import { Roles } from '../../decorators/roles.decorator';
-import { UserRole } from '@prisma/client';
-import { prisma } from '../../prisma/prisma.service';
+import { OrderService } from '../order/order.service';
+import { ReturnService } from '../return/return.service';
+import { SupportOrdersQueryDto } from './dto/support.dto';
 
 @Controller('support')
+@Roles(UserRole.SUPPORT, UserRole.ADMIN)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class SupportController {
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  constructor(
+    private readonly orderService: OrderService,
+    private readonly returnService: ReturnService,
+  ) {}
+
   @Get('orders')
-  searchOrders(@Query('query') query?: string) {
-    const where: any = {};
-    if (query) {
+  async searchOrders(@Query() query: SupportOrdersQueryDto) {
+    const where: Prisma.OrderWhereInput = {};
+    if (query.query?.trim()) {
+      const value = query.query.trim();
       where.OR = [
-        { buyer: { email: { contains: query, mode: 'insensitive' } } },
-        { id: query },
+        { id: value },
+        { buyer: { email: { contains: value, mode: 'insensitive' } } },
       ];
     }
-    return prisma.order.findMany({
-      where,
-      include: { buyer: { select: { id: true, email: true, fullName: true } },
-        items: { include: { seat: true, category: true } } },
-    });
+
+    const [orders, total] = await Promise.all([
+      prisma.order.findMany({
+        where,
+        include: {
+          buyer: { select: { id: true, email: true, fullName: true } },
+          event: { select: { id: true, title: true, eventDate: true } },
+          items: { include: { seat: true, category: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (query.page - 1) * query.limit,
+        take: query.limit,
+      }),
+      prisma.order.count({ where }),
+    ]);
+
+    return { orders, total, page: query.page, totalPages: Math.ceil(total / query.limit) };
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @Get('orders/:id')
-  getOrderDetails(@Param('id') id: string) {
-    return prisma.order.findUnique({
-      where: { id },
-      include: { buyer: true, items: { include: { seat: true, category: true } } },
-    });
+  getOrderDetails(@Param('id', ParseUUIDPipe) id: string, @Req() req: any) {
+    return this.orderService.findById(id, req.user.userId, req.user.role);
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @Get('orders/:id/history')
-  getOrderHistory(@Param('id') id: string) {
+  getOrderHistory(@Param('id', ParseUUIDPipe) id: string) {
     return prisma.auditLog.findMany({
       where: { targetType: 'order', targetId: id },
       orderBy: { createdAt: 'desc' },
@@ -43,27 +59,23 @@ export class SupportController {
     });
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @Post('orders/:id/cancel')
-  cancelOrder(@Param('id') id: string, @Req() req: any) {
-    return prisma.order.update({ where: { id }, data: { status: 'CANCELLED' } });
+  cancelOrder(@Param('id', ParseUUIDPipe) id: string, @Req() req: any) {
+    return this.orderService.cancel(id, req.user.userId, 'SUPPORT');
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @Post('orders/:id/confirm')
-  confirmOrder(@Param('id') id: string, @Req() req: any) {
-    return prisma.order.update({ where: { id }, data: { status: 'PAID' } });
+  confirmOrder(@Param('id', ParseUUIDPipe) id: string, @Req() req: any) {
+    return this.orderService.confirmBySupport(id, req.user.userId);
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @Post('returns/:id/approve')
-  approveReturn(@Param('id') id: string, @Req() req: any) {
-    return { message: 'Return approved by support', returnId: id };
+  approveReturn(@Param('id', ParseUUIDPipe) id: string, @Req() req: any) {
+    return this.returnService.approve(id, req.user.userId, 'SUPPORT');
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @Post('returns/:id/reject')
-  rejectReturn(@Param('id') id: string, @Req() req: any) {
-    return { message: 'Return rejected by support', returnId: id };
+  rejectReturn(@Param('id', ParseUUIDPipe) id: string, @Req() req: any) {
+    return this.returnService.reject(id, req.user.userId, 'SUPPORT');
   }
 }

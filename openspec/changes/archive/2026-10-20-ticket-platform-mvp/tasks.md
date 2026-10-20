@@ -44,7 +44,7 @@
 
 ## 6. Search Module
 
-- [x] 6.1 Implement PostgreSQL Full-Text Search service, verify tsvector index is created
+- [ ] 6.1 Implement PostgreSQL Full-Text Search service, verify tsvector index is created
 - [x] 6.2 Implement search endpoint with text, date, city, genre filters, verify search returns results
 - [x] 6.3 Implement combined filters and verify all filters work together
 - [x] 6.4 Implement pagination and verify totalCount is returned
@@ -60,18 +60,18 @@
 - [x] 7.6 Implement reservation creation with Redis distributed locks, verify lock is acquired
 - [x] 7.7 Implement cart endpoints (add, remove, list), verify cart operations work
 - [x] 7.8 Implement reservation TTL with Redis (10 min), verify auto-expiry works
-- [ ] 7.9 Implement concurrent booking test, verify only one user succeeds for same seat
+- [x] 7.9 Implement concurrent booking test, verify only one user succeeds for same seat
 
 ## 8. Order & Payment Module
 
-- [ ] 8.1 Implement Order entity and OrderModule with Prisma service, verify unit tests pass
-- [ ] 8.2 Implement order creation from cart, verify order is created with PENDING_PAYMENT status
+- [x] 8.1 Implement Order entity and OrderModule with Prisma service, verify unit tests pass
+- [x] 8.2 Implement order creation from cart, verify order is created with PENDING_PAYMENT status
 - [ ] 8.3 Implement Saga pattern for order creation (reserve + create + confirm), verify rollback on failure
-- [ ] 8.4 Implement order cancellation endpoint, verify seats are released
-- [ ] 8.5 Implement order history endpoints (list, detail), verify orders are returned correctly
-- [ ] 8.6 Implement payment gateway emulation service, verify payment flow works
-- [ ] 8.7 Implement payment charge endpoint, verify order status changes to PAID on success
-- [ ] 8.8 Implement payment idempotency, verify duplicate charge requests return same result
+- [x] 8.4 Implement order cancellation endpoint, verify seats are released
+- [x] 8.5 Implement order history endpoints (list, detail), verify orders are returned correctly
+- [x] 8.6 Implement payment gateway emulation service, verify payment flow works
+- [x] 8.7 Implement payment charge endpoint, verify order status changes to PAID on success
+- [x] 8.8 Implement payment idempotency, verify duplicate charge requests return same result
 - [x] 8.9 Implement Outbox pattern for payment events, verify events are published to Kafka
 - [x] 8.10 Implement QR code generation service, verify QR contains correct ticket data
 - [x] 8.11 Implement ticket PDF generation, verify PDF contains QR code and details
@@ -90,33 +90,33 @@
 
 - [x] 10.1 Implement organizer dashboard endpoint (sales metrics), verify dashboard returns correct data
 - [ ] 10.2 Implement real-time sales updates via WebSocket, verify organizer receives live data
-- [ ] 10.3 Implement event statistics endpoint, verify stats by category and date are correct
+- [x] 10.3 Implement event statistics endpoint, verify stats by category and date are correct
 - [ ] 10.4 Implement agency assignment endpoint, verify agency is linked to event
-- [ ] 10.5 Implement agency statistics endpoint, verify sales and commissions per agency
-- [ ] 10.6 Implement bulk return operations, verify bulk approve/reject works
+- [x] 10.5 Implement agency statistics endpoint, verify sales and commissions per agency
+- [x] 10.6 Implement bulk return operations, verify bulk approve/reject works
 
 ## 11. Agency Dashboard Module
 
-- [ ] 11.1 Implement agency events endpoint, verify assigned events are returned
+- [x] 11.1 Implement agency events endpoint, verify assigned events are returned
 - [ ] 11.2 Implement agency order creation (sell tickets), verify order has agencyId
-- [ ] 11.3 Implement agency statistics endpoint, verify sales/revenue/commission stats
+- [x] 11.3 Implement agency statistics endpoint, verify sales/revenue/commission stats
 - [ ] 11.4 Implement agency real-time stats via WebSocket, verify live updates work
 
 ## 12. Admin Dashboard Module
 
-- [ ] 12.1 Implement admin user list endpoint with pagination, verify users are returned
-- [ ] 12.2 Implement admin event moderation queue, verify PENDING events are listed
-- [ ] 12.3 Implement approve/reject endpoints, verify status changes correctly
-- [ ] 12.4 Implement platform commission settings, verify commission is applied to new orders
-- [ ] 12.5 Implement global analytics endpoint, verify all metrics are correct
+- [x] 12.1 Implement admin user list endpoint with pagination, verify users are returned
+- [x] 12.2 Implement admin event moderation queue, verify PENDING events are listed
+- [x] 12.3 Implement approve/reject endpoints, verify status changes correctly
+- [x] 12.4 Implement platform commission settings, verify commission is applied to new orders
+- [x] 12.5 Implement global analytics endpoint, verify all metrics are correct
 
 ## 13. Support Dashboard Module
 
-- [ ] 13.1 Implement support order search endpoint, verify orders found by email/orderId/ticketId
-- [ ] 13.2 Implement support order details endpoint, verify full order data is returned
-- [ ] 13.3 Implement support manual cancel/confirm, verify orders are updated and audited
-- [ ] 13.4 Implement order action history endpoint, verify chronological history is returned
-- [ ] 13.5 Implement support return operations, verify manual approve/reject works
+- [x] 13.1 Implement support order search endpoint, verify orders found by email/orderId/ticketId
+- [x] 13.2 Implement support order details endpoint, verify full order data is returned
+- [x] 13.3 Implement support manual cancel/confirm, verify orders are updated and audited
+- [x] 13.4 Implement order action history endpoint, verify chronological history is returned
+- [x] 13.5 Implement support return operations, verify manual approve/reject works
 
 ## 14. Notifications Module
 
@@ -129,23 +129,35 @@
 ## 15. Non-Functional Requirements
 
 - [ ] 15.1 Implement structured logging with Winston, verify logs contain userId, traceId, timestamp
-- [ ] 15.2 Implement Prometheus metrics middleware, verify metrics are exposed at /metrics
+- [x] 15.2 Implement Prometheus metrics middleware, verify metrics are exposed at /metrics
 - [x] 15.3 Implement request tracing (traceId propagation), verify traceId spans modules
-- [ ] 15.4 Implement input validation (class-validator) on all DTOs, verify validation errors are returned
+- [x] 15.4 Implement input validation (class-validator) on all DTOs, verify validation errors are returned
 - [x] 15.5 Implement rate limiting on public endpoints, verify rate limit headers are returned
-- [ ] 15.6 Implement CORS configuration, verify CORS headers are correct
+- [x] 15.6 Implement CORS configuration, verify CORS headers are correct
 - [x] 15.7 Add health check endpoint, verify /health returns service status
 - [ ] 15.8 Load test booking endpoint, verify p95 latency <= 500ms under 1000 concurrent users
 
 ## 16. Integration & Testing
 
-- [ ] 16.1 Write integration tests for auth flow (register, login, refresh), verify all tests pass
+- [x] 16.1 Write integration tests for auth flow (register, login, refresh), verify all tests pass
 - [ ] 16.2 Write integration tests for event CRUD, verify all tests pass
-- [ ] 16.3 Write integration tests for booking flow (select, reserve, pay, cancel), verify all tests pass
-- [ ] 16.4 Write integration tests for return flow (request, approve, reject), verify all tests pass
+- [x] 16.3 Write integration tests for booking flow (select, reserve, pay, cancel), verify all tests pass
+- [x] 16.4 Write integration tests for return flow (request, approve, reject), verify all tests pass
 - [ ] 16.5 Write WebSocket integration test for seat status updates, verify real-time updates work
 - [ ] 16.6 End-to-end smoke test: full buyer journey (search -> select -> reserve -> pay -> ticket), verify complete flow works
 - [ ] 16.7 Verify Docker Compose starts all services and app connects to all dependencies
+
+## Known gaps
+
+- 6.1: поиск выполняется через `ILIKE`, `tsvector`-индекс не создан (пункт снят как преждевременный).
+- 8.3: заказ создаётся в транзакции с откатом, но без отдельного Saga-оркестратора.
+- 8.10/8.11: QR/PDF-сервис реализован, но не подключён к потоку оплаты и письмам.
+- 10.2/11.4: real-time дашборды не реализованы.
+- 10.4/11.2: назначение агентства и агентские продажи требуют таблицы `EventAgency` (эндпоинты отвечают 501).
+- 14.1/14.4/14.5: Nodemailer не подключён, письма логируются; Kafka-consumer уведомлений не зарегистрирован в модуле.
+- 15.1: Winston не назначен глобальным логгером приложения.
+- 15.8: нагрузочный тест не проводился.
+- 16.2/16.5/16.6/16.7: event CRUD, WebSocket, полный путь покупателя и compose проверены вручную, но не покрыты автотестами.
 
 ## Workflow follow-up
 

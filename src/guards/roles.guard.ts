@@ -1,11 +1,17 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from '../decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
-  constructor(private reflector: Reflector) {}
+  constructor(private readonly reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
     const requiredRoles = this.reflector.getAllAndOverride<UserRole[]>(ROLES_KEY, [
@@ -13,17 +19,19 @@ export class RolesGuard implements CanActivate {
       context.getClass(),
     ]);
 
-    if (!requiredRoles) {
+    // Routes without @Roles stay public (or are protected by JwtAuthGuard alone).
+    if (!requiredRoles || requiredRoles.length === 0) {
       return true;
     }
 
-    const { user } = context.switchToHttp().getRequest();
-    if (!user || !user.role) {
-      return false;
+    const request = context.switchToHttp().getRequest();
+    const user = request?.user;
+
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
     }
 
-    const hasRole = requiredRoles.includes(user.role);
-    if (!hasRole) {
+    if (!user.role || !requiredRoles.includes(user.role)) {
       throw new ForbiddenException('Insufficient permissions');
     }
 

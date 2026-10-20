@@ -7,6 +7,7 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
+  gap: 1rem;
 }
 
 .profile-card {
@@ -42,7 +43,8 @@
 .order-card-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  gap: 1rem;
   margin-bottom: 1rem;
   padding-bottom: 1rem;
   border-bottom: 1px solid var(--border);
@@ -54,6 +56,7 @@
   border-radius: 20px;
   font-size: 0.8rem;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .order-card-items {
@@ -66,6 +69,7 @@
 .order-item-mini {
   display: flex;
   justify-content: space-between;
+  gap: 1rem;
   padding: 0.5rem;
   background: var(--bg);
   border-radius: 4px;
@@ -76,6 +80,20 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
   color: var(--text-secondary);
   font-size: 0.9rem;
+}
+
+.order-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.order-card-actions strong {
+  color: var(--text);
+  margin-right: 0.5rem;
 }

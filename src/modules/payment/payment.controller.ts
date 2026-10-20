@@ -1,14 +1,19 @@
-import { Controller, Post, Param, Body, UseGuards, Req } from '@nestjs/common';
+import { Body, Controller, Param, ParseUUIDPipe, Post, Req, UseGuards } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { ChargePaymentDto } from './dto/payment.dto';
 
 @Controller('payments')
 export class PaymentController {
-  constructor(private paymentService: PaymentService) {}
+  constructor(private readonly paymentService: PaymentService) {}
 
   @UseGuards(JwtAuthGuard)
   @Post(':orderId/charge')
-  charge(@Param('orderId') orderId: string, @Req() req: any, @Body('paymentMethod') paymentMethod: string) {
-    return this.paymentService.charge(orderId, paymentMethod, req.user.userId);
+  charge(
+    @Param('orderId', ParseUUIDPipe) orderId: string,
+    @Req() req: any,
+    @Body() dto: ChargePaymentDto,
+  ) {
+    return this.paymentService.charge(orderId, dto.paymentMethod, req.user.userId, req.user.role);
   }
 }

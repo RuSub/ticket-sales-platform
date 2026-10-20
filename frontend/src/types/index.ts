@@ -1,88 +1,128 @@
+export type UserRole = 'BUYER' | 'ORGANIZER' | 'AGENCY' | 'ADMIN' | 'SUPPORT';
+
+export type EventStatus = 'DRAFT' | 'PENDING' | 'APPROVED' | 'CANCELLED' | 'HIDDEN';
+
+export type EventGenre =
+  | 'CONCERT'
+  | 'THEATER'
+  | 'SPORT'
+  | 'CONFERENCE'
+  | 'FESTIVAL'
+  | 'OTHER';
+
+export type SeatStatus = 'AVAILABLE' | 'RESERVED' | 'SOLD' | 'BLOCKED';
+
+export type OrderStatus =
+  | 'PENDING_PAYMENT'
+  | 'PAID'
+  | 'PAYMENT_FAILED'
+  | 'CANCELLED'
+  | 'COMPLETED';
+
+export type ReservationStatus = 'ACTIVE' | 'EXPIRED' | 'CONVERTED';
+
 export interface User {
   id: string;
   email: string;
-  role: 'BUYER' | 'ORGANIZER' | 'AGENCY' | 'ADMIN' | 'SUPPORT';
+  role: UserRole;
   fullName: string | null;
   phone: string | null;
-  isBlocked: boolean;
+  isActive: boolean;
   createdAt: string;
 }
 
 export interface AuthResponse {
   accessToken: string;
   refreshToken: string;
-  user: Omit<User, 'isBlocked' | 'createdAt'>;
-}
-
-export interface Event {
-  id: string;
-  title: string;
-  description: string;
-  date: string;
-  location: string;
-  status: 'DRAFT' | 'PENDING' | 'APPROVED' | 'HIDDEN' | 'COMPLETED' | 'CANCELLED';
-  organizerId: string;
-  venueTemplateId: string | null;
-  imageUrl: string | null;
-  createdAt: string;
+  user: User;
 }
 
 export interface SeatCategory {
   id: string;
   name: string;
-  price: number;
-  row: number;
-  seats: number;
+  zoneName: string | null;
+  price: string | number;
+  capacity: number;
 }
 
 export interface Seat {
   id: string;
+  rowNumber: number;
+  seatNumber: number;
   categoryId: string;
-  row: number;
-  number: number;
-  status: 'AVAILABLE' | 'RESERVED' | 'BOOKED';
+  status: SeatStatus;
+  reservationExpiresAt: string | null;
   category?: SeatCategory;
 }
 
-export interface VenueLayout {
+export interface Event {
   id: string;
-  name: string;
-  layout: Record<string, unknown>;
+  title: string;
+  description: string | null;
+  eventDate: string;
+  venueName: string | null;
+  venueAddress: string | null;
+  genre: EventGenre;
+  status: EventStatus;
+  saleStartTime: string | null;
+  createdAt?: string;
+  categories?: SeatCategory[];
+  seats?: Seat[];
+  organizer?: { id: string; fullName: string | null };
+  _count?: { seats: number };
+}
+
+export interface EventListResponse {
+  events: Event[];
+  total: number;
+  page: number;
+  totalPages: number;
+}
+
+export interface SeatLayoutResponse {
+  eventId: string;
+  title: string;
+  eventDate: string;
   categories: SeatCategory[];
   seats: Seat[];
 }
 
-export interface Order {
+export interface Reservation {
   id: string;
-  userId: string;
-  status: 'PENDING' | 'PAID' | 'CANCELLED' | 'REFUNDED';
-  totalAmount: number;
-  createdAt: string;
-  items: OrderItem[];
+  buyerId: string;
+  eventId: string;
+  seatIds: string[];
+  expiresAt: string;
+  status: ReservationStatus;
+  event?: { id: string; title: string; eventDate: string };
 }
 
 export interface OrderItem {
   id: string;
-  orderId: string;
   seatId: string;
-  price: number;
-  seat: Seat;
+  categoryId: string;
+  price: string | number;
+  seat?: Seat;
+  category?: SeatCategory;
 }
 
-export interface SearchFilters {
-  query?: string;
-  city?: string;
-  genre?: string;
-  dateFrom?: string;
-  dateTo?: string;
-  page?: number;
-  limit?: number;
+export interface Order {
+  id: string;
+  buyerId: string;
+  eventId: string;
+  agencyId: string | null;
+  status: OrderStatus;
+  totalAmount: string | number;
+  platformCommission: string | number;
+  agencyCommission: string | number;
+  createdAt: string;
+  items: OrderItem[];
+  event?: { id: string; title: string; eventDate: string; venueName: string | null };
 }
 
-export interface PaginatedResponse<T> {
-  items: T[];
+export interface OrderListResponse {
+  orders: Order[];
   total: number;
   page: number;
-  limit: number;
-  hasMore: boolean;
+  totalPages: number;
 }

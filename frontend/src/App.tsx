@@ -1,5 +1,5 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, type ReactNode } from 'react';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { useAuthStore } from './store/auth';
 import { Layout } from './components/Layout';
 import { Login } from './pages/Login';
@@ -8,21 +8,16 @@ import { Events } from './pages/Events';
 import { EventDetail } from './pages/EventDetail';
 import { Cart } from './pages/Cart';
 import { Profile } from './pages/Profile';
+import { OAuthCallback } from './pages/OAuthCallback';
 import './styles/main.css';
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+function ProtectedRoute({ children }: { children: ReactNode }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const fetchUser = useAuthStore((state) => state.fetchUser);
   const isLoading = useAuthStore((state) => state.isLoading);
-
-  useEffect(() => {
-    fetchUser();
-  }, [fetchUser]);
 
   if (isLoading) {
     return <div className="loading">Загрузка...</div>;
   }
-
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
@@ -30,7 +25,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function PublicRoute({ children }: { children: React.ReactNode }) {
+function PublicOnlyRoute({ children }: { children: ReactNode }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
   if (isAuthenticated) {
@@ -41,42 +36,38 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
+  const fetchUser = useAuthStore((state) => state.fetchUser);
+
+  useEffect(() => {
+    void fetchUser();
+  }, [fetchUser]);
+
   return (
     <BrowserRouter>
       <Routes>
         <Route element={<Layout />}>
+          {/* Catalog is public: browsing must work without an account. */}
+          <Route path="/" element={<Events />} />
+          <Route path="/events/:id" element={<EventDetail />} />
+
           <Route
             path="/login"
             element={
-              <PublicRoute>
+              <PublicOnlyRoute>
                 <Login />
-              </PublicRoute>
+              </PublicOnlyRoute>
             }
           />
           <Route
             path="/register"
             element={
-              <PublicRoute>
+              <PublicOnlyRoute>
                 <Register />
-              </PublicRoute>
+              </PublicOnlyRoute>
             }
           />
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <Events />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/events/:id"
-            element={
-              <ProtectedRoute>
-                <EventDetail />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/oauth/callback" element={<OAuthCallback />} />
+
           <Route
             path="/cart"
             element={
@@ -93,6 +84,8 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
     </BrowserRouter>

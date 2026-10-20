@@ -84,6 +84,8 @@ model User {
   returns      Return[]      @relation("ReturnBuyer")
   requestedReturns Return[] @relation("ReturnRequestedBy")
   approvedReturns  Return[] @relation("ReturnApprovedBy")
+  agencyAssignments EventAgency[] @relation("AgencyAssignments")
+  assignedAgencyLinks EventAgency[] @relation("AgencyAssignedBy")
   auditLogs    AuditLog[]
 
   @@map("users")
@@ -112,6 +114,7 @@ model Event {
   orders          Order[]
   reservations    Reservation[]
   returns         Return[]       @relation("ReturnEvent")
+  agencies        EventAgency[]
 
   @@map("events")
 }
@@ -170,6 +173,7 @@ model Order {
   event             Event         @relation(fields: [eventId], references: [id])
   agencyId          String?       @map("agency_id")
   agency            User?         @relation("OrderAgency", fields: [agencyId], references: [id])
+  ticketId          String?       @unique @map("ticket_id")
   status            OrderStatus   @default(PENDING_PAYMENT)
   totalAmount       Decimal       @map("total_amount") @db.Decimal(10, 2)
   platformCommission Decimal      @map("platform_commission") @default(0) @db.Decimal(10, 2)
@@ -179,6 +183,7 @@ model Order {
 
   items             OrderItem[]
   returns           Return[]
+  notifications     NotificationDelivery[]
 
   @@map("orders")
 }
@@ -263,4 +268,39 @@ model PlatformSetting {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("platform_settings")
+}
+
+model EventAgency {
+  id             String   @id @default(uuid())
+  eventId        String   @map("event_id")
+  event          Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  agencyId       String   @map("agency_id")
+  agency         User     @relation("AgencyAssignments", fields: [agencyId], references: [id], onDelete: Cascade)
+  assignedBy     String?  @map("assigned_by")
+  assignedByUser User?    @relation("AgencyAssignedBy", fields: [assignedBy], references: [id], onDelete: SetNull)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@unique([eventId, agencyId])
+  @@map("event_agencies")
+}
+
+model NotificationDelivery {
+  id            String    @id @default(uuid())
+  dedupeKey     String    @unique @map("dedupe_key")
+  orderId       String?   @map("order_id")
+  order         Order?    @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  template      String
+  recipient     String
+  subject       String
+  body          String?
+  status        String    @default("PENDING")
+  attempts      Int       @default(0)
+  lastError     String?   @map("last_error")
+  nextAttemptAt DateTime? @map("next_attempt_at")
+  sentAt        DateTime? @map("sent_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@index([status, nextAttemptAt])
+  @@map("notification_deliveries")
 }

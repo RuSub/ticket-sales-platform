@@ -1,4 +1,4 @@
-import { Outlet, Link, useNavigate } from 'react-router-dom';
+import { Link, Outlet, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/auth';
 import '../styles/layout.css';
 
@@ -22,26 +22,26 @@ export function Layout() {
           </Link>
 
           <nav className="nav-links">
-            {isAuthenticated ? (
-              <>
-                <Link to="/">События</Link>
-                <Link to="/cart">Корзина</Link>
-                <Link to="/profile">Профиль</Link>
-                <button className="btn-logout" onClick={handleLogout}>
-                  Выйти
-                </button>
-              </>
-            ) : (
-              <>
-                <Link to="/login">Войти</Link>
-                <Link to="/register">Регистрация</Link>
-              </>
-            )}
+            <Link to="/">События</Link>
+            {isAuthenticated && <Link to="/cart">Корзина</Link>}
+            {isAuthenticated && <Link to="/profile">Профиль</Link>}
           </nav>
 
-          {user && (
-            <div className="user-badge">
-              {user.fullName || user.email}
+          {isAuthenticated ? (
+            <div className="header-user">
+              <span className="user-badge">{user?.fullName || user?.email || 'Аккаунт'}</span>
+              <button className="btn-logout" onClick={handleLogout}>
+                Выйти
+              </button>
+            </div>
+          ) : (
+            <div className="header-user">
+              <Link className="nav-link-button" to="/login">
+                Войти
+              </Link>
+              <Link className="nav-link-button primary" to="/register">
+                Регистрация
+              </Link>
             </div>
           )}
         </div>

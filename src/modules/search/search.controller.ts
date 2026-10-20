@@ -1,12 +1,20 @@
-import { Controller, Get, Post, Query } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 import { SearchService } from './search.service';
+import { SearchQueryDto } from './dto/search.dto';
 
 @Controller('events/search')
 export class SearchController {
-  constructor(private searchService: SearchService) {}
+  constructor(private readonly searchService: SearchService) {}
 
   @Get()
-  search(@Query('q') q?: string, @Query('date') date?: string, @Query('city') city?: string, @Query('genre') genre?: string, @Query('page') page?: number, @Query('limit') limit?: number) {
-    return this.searchService.search(q, date, city, genre, page, limit);
+  search(@Query() query: SearchQueryDto) {
+    return this.searchService.search(
+      query.q ?? query.query,
+      query.date,
+      query.city,
+      query.genre,
+      query.page,
+      query.limit,
+    );
   }
 }

@@ -1,3 +1,4 @@
+# --- Build stage -----------------------------------------------------------
 FROM node:20-alpine AS builder
 
 WORKDIR /app
@@ -11,17 +12,23 @@ RUN npx prisma generate
 COPY . .
 RUN npm run build
 
+# --- Runtime stage ---------------------------------------------------------
 FROM node:20-alpine AS runner
 
 WORKDIR /app
+ENV NODE_ENV=production
 
-COPY package*.json ./
-RUN npm ci --legacy-peer-deps --omit=dev
-
+# node_modules are copied from the builder because the Prisma CLI (a dev
+# dependency) is required for `prisma migrate deploy` on container start.
+# This trades a smaller image for a reliable, self-migrating deployment.
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/prisma ./prisma/
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/package.json ./package.json
 
 EXPOSE 3000
 
-CMD ["node", "dist/main"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:3000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main"]

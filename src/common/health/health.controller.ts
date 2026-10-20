@@ -1,7 +1,9 @@
 import { Controller, Get } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 
 @Controller('health')
 export class HealthController {
+  @SkipThrottle()
   @Get()
   check() {
     return {
@@ -12,6 +14,7 @@ export class HealthController {
     };
   }
 
+  @SkipThrottle()
   @Get('ready')
   readiness() {
     return { status: 'ready' };
