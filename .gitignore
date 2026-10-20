@@ -32,6 +32,3 @@ coverage/
 # Docker
 postgres_data/
 redis_data/
-
-# OpenSpec
-openspec/changes/*/specs/
